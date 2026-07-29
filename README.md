@@ -2,7 +2,7 @@
 
 A Google-Maps-style directory of businesses that accept stablecoins and Bitcoin. Search by category and city, filter by accepted coin, and let business owners submit themselves.
 
-**Live demo:** _(add your Vercel URL here after deploy)_
+**Live demo:** https://stablecoin-map-pink.vercel.app
 
 ![status](https://img.shields.io/badge/stage-prototype-orange)
 
