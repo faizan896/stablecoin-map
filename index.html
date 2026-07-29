@@ -3,166 +3,187 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Merchant Directory — Stablecoin Acceptance Map</title>
-<meta name="description" content="Global index of businesses accepting stablecoins and Bitcoin. Search by location and category.">
+<title>Merchant Directory — Stablecoin &amp; Bitcoin Acceptance Map</title>
+<meta name="description" content="Live global index of businesses accepting stablecoins and Bitcoin. 3D world map, search by location and category, register your business.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root{
-    --blue:#b3c4d8;
-    --blue-line:#5c6f85;
-    --paper:#f7f7f5;
-    --ink:#0a0a0a;
-    --muted:#77776f;
-    --line:#dcdcd6;
-    --rule:#1a1a1a;
+    --blue:#b3c4d8; --blue-deep:#8fa3bd; --blue-line:#5c6f85;
+    --paper:#f7f7f5; --ink:#0a0a0a; --muted:#77776f;
+    --line:#dcdcd6; --rule:#1a1a1a; --warn:#a3721f;
     --sans:"Helvetica Neue",Helvetica,Arial,"Segoe UI",Roboto,sans-serif;
     --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
     --serif:"Times New Roman",Times,Georgia,serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
-  body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
-  button,input,select,textarea{font-family:inherit;color:inherit}
+  body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;overflow:hidden}
+  button,input,select{font-family:inherit;color:inherit}
   button{cursor:pointer;background:none;border:none;padding:0}
+  .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase}
+  .dim{color:var(--muted)}
 
-  #app{display:flex;height:100%;overflow:hidden}
+  #app{display:flex;height:100%}
 
-  /* ---------- left: globe / map ---------- */
-  #globe{position:relative;flex:1 1 58%;min-width:0;background:var(--blue);overflow:hidden}
-  #map{position:absolute;inset:0;background:var(--blue)}
+  /* ================= left: viewport ================= */
+  #view{position:relative;flex:1 1 58%;min-width:0;background:var(--blue);overflow:hidden}
+  #globe3d,#map{position:absolute;inset:0}
+  #map{background:var(--blue);visibility:hidden}
+  #map.on{visibility:visible;z-index:3}
+  #globe3d.off{visibility:hidden}
   #map .leaflet-tile{filter:grayscale(1) brightness(.97) contrast(.4) sepia(1) hue-rotate(186deg) saturate(.55)}
   #tint{position:absolute;inset:0;background:rgba(158,177,203,.34);pointer-events:none;z-index:395}
-  #spokes{position:absolute;inset:0;pointer-events:none;z-index:400;opacity:.5}
-  .stamp{position:absolute;z-index:500;pointer-events:none;font-family:var(--mono);
-    font-size:10.5px;letter-spacing:.06em;color:#1c2733}
-  #stamp-tl{top:18px;left:20px}
-  #stamp-bl{bottom:20px;left:20px;font-family:var(--sans);font-size:11.5px;line-height:1.45;max-width:190px;letter-spacing:0}
-  #stamp-br{bottom:16px;right:56px;text-align:right}
+
+  .stamp{position:absolute;z-index:500;pointer-events:none;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.06em;color:#1c2733}
+  #s-tl{top:18px;left:20px}
+  #s-bl{bottom:18px;left:20px;font-family:var(--sans);font-size:11.5px;line-height:1.45;max-width:210px;letter-spacing:0}
+  #s-br{bottom:16px;right:58px;text-align:right}
+
+  #vtabs{position:absolute;top:14px;right:16px;z-index:600;display:flex;border:1px solid var(--rule);background:var(--paper)}
+  #vtabs button{padding:6px 13px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  #vtabs button+button{border-left:1px solid var(--rule)}
+  #vtabs button.on{background:var(--ink);color:var(--paper)}
 
   .leaflet-control-zoom{border:1px solid var(--rule)!important;border-radius:0!important;box-shadow:none!important}
   .leaflet-control-zoom a{background:var(--paper)!important;color:var(--ink)!important;border-radius:0!important;
     border-bottom:1px solid var(--rule)!important;width:26px!important;height:26px!important;line-height:24px!important;font-size:15px!important}
   .leaflet-control-zoom a:last-child{border-bottom:none!important}
-  .leaflet-control-attribution{background:rgba(247,247,245,.8)!important;font-family:var(--mono);font-size:9px!important;color:#4a5666!important}
-  .leaflet-control-attribution a{color:#2c3644!important}
+  .leaflet-control-attribution{background:rgba(247,247,245,.82)!important;font-family:var(--mono);font-size:9px!important;color:#4a5666!important}
   .node{width:9px;height:9px;background:var(--ink);box-shadow:0 0 0 0 rgba(10,10,10,.25);transition:box-shadow .15s}
-  .node.on{box-shadow:0 0 0 5px rgba(10,10,10,.18)}
-  .leaflet-popup-content-wrapper{background:var(--paper);border:1px solid var(--rule);border-radius:0;box-shadow:none}
-  .leaflet-popup-tip{background:var(--paper);border:1px solid var(--rule)}
+  .node.on{box-shadow:0 0 0 5px rgba(10,10,10,.2)}
+  .node.stable{background:var(--paper);border:2px solid var(--ink)}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--paper);border:1px solid var(--rule);border-radius:0;box-shadow:none}
   .leaflet-popup-content{margin:13px 15px;font-size:12px;line-height:1.5}
-  .leaflet-container a.leaflet-popup-close-button{color:var(--muted);font-weight:400}
-  .pop-t{font-size:13.5px;letter-spacing:.02em;text-transform:uppercase;margin-bottom:3px}
+  .pop-t{font-size:13.5px;text-transform:uppercase;margin-bottom:3px}
   .pop-m{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
 
-  /* ---------- right: directory ---------- */
-  #dir{flex:0 0 476px;max-width:44%;background:var(--paper);border-left:1px solid var(--rule);
+  /* ================= right: directory ================= */
+  #dir{flex:0 0 492px;max-width:46%;background:var(--paper);border-left:1px solid var(--rule);
     display:flex;flex-direction:column;min-height:0}
-  .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink)}
-  .lbl.dim{color:var(--muted)}
 
-  .head{padding:26px 28px 24px;border-bottom:1px solid var(--rule)}
-  .head h1{margin:9px 0 0;font-size:34px;line-height:1.02;letter-spacing:-.018em;font-weight:500;text-transform:uppercase}
+  .head{padding:24px 28px 22px;border-bottom:1px solid var(--rule)}
+  .head-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .head h1{margin:9px 0 0;font-size:32px;line-height:1.02;letter-spacing:-.018em;font-weight:500;text-transform:uppercase}
+  .cta{background:var(--ink);color:var(--paper);padding:11px 16px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.11em;text-transform:uppercase;white-space:nowrap;line-height:1.2;transition:.12s}
+  .cta:hover{background:#2c3644}
 
-  .filters{padding:18px 28px 20px;border-bottom:1px solid var(--rule)}
-  .filters .lbl{display:block;margin-bottom:11px;font-weight:700;letter-spacing:.11em}
+  .filters{padding:16px 28px 18px;border-bottom:1px solid var(--rule)}
+  .filters>.lbl{display:block;margin-bottom:10px;font-weight:700;letter-spacing:.11em}
   .uline{width:100%;border:none;border-bottom:1px solid var(--line);background:none;padding:5px 0 7px;
-    font-size:14.5px;outline:none;margin-bottom:11px}
+    font-size:14.5px;outline:none;margin-bottom:12px;border-radius:0}
   .uline::placeholder{color:#a3a39b}
   .uline:focus{border-bottom-color:var(--rule)}
-  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
-  .tag{border:1px solid var(--rule);padding:2.5px 6px;font-family:var(--mono);font-size:9px;
-    letter-spacing:.07em;text-transform:uppercase;color:var(--ink);background:none;line-height:1.3;transition:.1s}
-  button.tag{color:#8a8a82;border-color:var(--line)}
+  .tags{display:flex;gap:5px;flex-wrap:wrap}
+  .tag{border:1px solid var(--rule);padding:2.5px 6px;font-family:var(--mono);font-size:9px;letter-spacing:.07em;
+    text-transform:uppercase;line-height:1.3;white-space:nowrap}
+  button.tag{color:#8a8a82;border-color:var(--line);transition:.1s}
   button.tag:hover{color:var(--ink);border-color:#a9a9a1}
   button.tag.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tag.stale{border-style:dashed;color:var(--warn);border-color:var(--warn)}
+  .tag.pend{border-style:dashed}
+  .jump{margin-top:12px}
+  .jump .lbl{display:block;margin-bottom:7px;color:var(--muted)}
 
-  .meta-row{padding:9px 28px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+  .meta-row{padding:9px 28px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
 
   #rows{flex:1;overflow-y:auto;min-height:0}
-  .row{display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:start;
-    padding:15px 28px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s}
+  .row{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:start;padding:14px 28px;
+    border-bottom:1px solid var(--line);cursor:pointer}
   .row:hover{background:#efefe9}
   .row.on{background:#e9e9e2}
   .row .n{font-family:var(--mono);font-size:10px;color:var(--muted);padding-top:3px}
-  .row h3{margin:0 0 4px;font-size:15px;font-weight:400;letter-spacing:.005em;text-transform:uppercase;line-height:1.2}
-  .row p{margin:0;font-size:11.5px;line-height:1.42;color:var(--muted);max-width:34ch}
-  .row .tags{margin:0;justify-content:flex-end;max-width:112px}
-  .pend{border-style:dashed}
-  .none{padding:44px 28px;font-size:12.5px;line-height:1.7;color:var(--muted)}
+  .row h3{margin:0 0 4px;font-size:14.5px;font-weight:400;text-transform:uppercase;line-height:1.22}
+  .row p{margin:0;font-size:11.5px;line-height:1.42;color:var(--muted)}
+  .row .tags{justify-content:flex-end;max-width:120px}
+  .note-row{padding:16px 28px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+  .none{padding:40px 28px;font-size:12.5px;line-height:1.7;color:var(--muted)}
 
-  .foot{border-top:1px solid var(--rule);padding:16px 28px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .foot{border-top:1px solid var(--rule);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:14px}
   .foot .m{font-family:var(--mono);font-size:9px;letter-spacing:.07em;color:var(--muted);line-height:1.5;text-transform:uppercase}
-  .foot .m b{display:block;color:var(--ink);font-weight:700;letter-spacing:.12em;margin-bottom:5px}
-  .serif{font-family:var(--serif);font-size:21px;letter-spacing:.005em;white-space:nowrap;border-bottom:1px solid transparent}
+  .foot .m b{display:block;color:var(--ink);font-weight:700;letter-spacing:.12em;margin-bottom:4px}
+  .serif{font-family:var(--serif);font-size:21px;white-space:nowrap;border-bottom:1px solid transparent}
   .serif:hover{border-bottom-color:var(--ink)}
 
-  /* ---------- modal ---------- */
-  .ov{position:fixed;inset:0;background:rgba(28,39,51,.42);display:none;align-items:center;justify-content:center;z-index:9000;padding:22px}
+  /* ================= modal ================= */
+  .ov{position:fixed;inset:0;background:rgba(28,39,51,.45);display:none;align-items:center;justify-content:center;z-index:9000;padding:22px}
   .ov.show{display:flex}
   .modal{background:var(--paper);border:1px solid var(--rule);width:100%;max-width:520px;max-height:88vh;overflow-y:auto}
-  .modal .mh{padding:22px 28px 18px;border-bottom:1px solid var(--rule)}
-  .modal h2{margin:9px 0 0;font-size:26px;font-weight:500;text-transform:uppercase;letter-spacing:-.012em;line-height:1.05}
+  .mh{padding:22px 28px 18px;border-bottom:1px solid var(--rule)}
+  .mh h2{margin:9px 0 0;font-size:25px;font-weight:500;text-transform:uppercase;letter-spacing:-.012em;line-height:1.06}
   .mb{padding:20px 28px 24px}
-  .mb label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
-    font-weight:700;margin:16px 0 6px}
+  .mb label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin:16px 0 6px}
   .mb label:first-child{margin-top:0}
   .mb select{width:100%;border:none;border-bottom:1px solid var(--line);background:none;padding:5px 0 7px;font-size:14.5px;outline:none;border-radius:0}
-  .two{display:flex;gap:18px}
-  .two>div{flex:1}
+  .two{display:flex;gap:18px}.two>div{flex:1}
   .note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:7px}
   .err{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#a3341f;margin-top:14px;display:none}
-  .acts{display:flex;gap:22px;justify-content:flex-end;align-items:center;margin-top:26px}
+  .acts{display:flex;gap:22px;justify-content:flex-end;align-items:center;margin-top:24px}
   .ghost{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
   .ghost:hover{color:var(--ink)}
-  .solid{background:var(--ink);color:var(--paper);padding:11px 22px;font-family:var(--mono);
-    font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+  .solid{background:var(--ink);color:var(--paper);padding:11px 22px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
   .solid:hover{background:#2c3644}
-
   .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--ink);
     color:var(--paper);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
     padding:12px 20px;z-index:9500;opacity:0;transition:.28s}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  @media(max-width:900px){
+  @media(max-width:920px){
     #app{flex-direction:column}
-    #globe{flex:0 0 44%}
+    #view{flex:0 0 42%}
     #dir{flex:1;max-width:none;border-left:none;border-top:1px solid var(--rule)}
-    #stamp-bl{display:none}
-    .head h1{font-size:27px}
-    .row{grid-template-columns:22px 1fr;padding:13px 20px}
+    #s-bl{display:none}
+    .head h1{font-size:25px}
+    .head,.filters,.meta-row,.foot,.row,.note-row{padding-left:20px;padding-right:20px}
+    .row{grid-template-columns:24px 1fr}
     .row .tags{grid-column:2;justify-content:flex-start;max-width:none;margin-top:7px}
-    .head,.filters,.meta-row,.foot{padding-left:20px;padding-right:20px}
   }
 </style>
 </head>
 <body>
 <div id="app">
 
-  <section id="globe">
+  <section id="view">
+    <div id="globe3d"></div>
     <div id="map"></div>
     <div id="tint"></div>
-    <svg id="spokes" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
-    <div class="stamp" id="stamp-tl">STABLE_GLOBE_V1.04</div>
-    <div class="stamp" id="stamp-bl">We look to the network, and expect a response from its depths.</div>
-    <div class="stamp" id="stamp-br"><span id="nodecount">—</span></div>
+
+    <div id="vtabs">
+      <button id="tab-globe" class="on">Globe</button>
+      <button id="tab-map">Street map</button>
+    </div>
+
+    <div class="stamp" id="s-tl">STABLE_GLOBE_V2.0 · LIVE</div>
+    <div class="stamp" id="s-bl">We look to the network, and expect a response from its depths.</div>
+    <div class="stamp" id="s-br"><span id="nodecount">····</span></div>
   </section>
 
   <aside id="dir">
     <div class="head">
-      <span class="lbl">Accepted_Networks</span>
-      <h1>Merchant<br>Directory</h1>
+      <div class="head-top">
+        <div>
+          <span class="lbl">Accepted_Networks</span>
+          <h1>Merchant<br>Directory</h1>
+        </div>
+        <button class="cta" id="open-top">+ Register<br>your business</button>
+      </div>
     </div>
 
     <div class="filters">
       <span class="lbl">Filter by location / category</span>
       <input class="uline" id="q" placeholder="Search global nodes…" autocomplete="off">
-      <input class="uline" id="city" placeholder="City / region" autocomplete="off">
       <div class="tags" id="chips"></div>
+      <div class="jump">
+        <span class="lbl">Jump to</span>
+        <div class="tags" id="cities"></div>
+      </div>
     </div>
 
     <div class="meta-row">
-      <span class="lbl dim" id="count">—</span>
-      <span class="lbl dim">Sorted by relevance</span>
+      <span class="lbl dim" id="count">Loading…</span>
+      <span class="lbl dim" id="src">Source: BTC Map</span>
     </div>
 
     <div id="rows"></div>
@@ -172,17 +193,16 @@
         <b>Submit_Node</b>
         Listing is free<br>Review takes ~24h
       </div>
-      <button class="serif" id="open">Submit Business</button>
+      <button class="serif" id="open-foot">Submit Business</button>
     </div>
   </aside>
 </div>
 
-<!-- submission -->
 <div class="ov" id="ov">
   <div class="modal">
     <div class="mh">
       <span class="lbl">Submit_Node</span>
-      <h2>List your<br>business</h2>
+      <h2>Register your<br>business</h2>
     </div>
     <div class="mb">
       <label for="f-name">Business name *</label>
@@ -202,9 +222,6 @@
       <label for="f-addr">Address</label>
       <input class="uline" id="f-addr" placeholder="Zamzama Blvd, Phase 5, DHA">
 
-      <label for="f-desc">Short description</label>
-      <input class="uline" id="f-desc" placeholder="Specialty roastery and cafe.">
-
       <label>Accepted networks *</label>
       <div class="tags" id="f-coins"></div>
 
@@ -212,9 +229,10 @@
       <input class="uline" id="f-contact" placeholder="+92 300 1234567">
 
       <label>Pin location</label>
-      <p class="note" id="pinhint">Click anywhere on the map to drop an exact pin. Otherwise the city centre is used.</p>
+      <p class="note" id="pinhint">Switch to <b>Street map</b> and click to drop an exact pin. Otherwise the city centre is used.</p>
 
       <div class="err" id="err"></div>
+      <p class="note" style="margin-top:14px">Prototype: submissions are stored in this browser only. Production wiring is described in <code>build-plan.md</code>.</p>
       <div class="acts">
         <button class="ghost" id="cancel">Cancel</button>
         <button class="solid" id="submit">Submit for review</button>
@@ -226,195 +244,297 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+<script src="https://unpkg.com/globe.gl@2.32.0/dist/globe.gl.min.js"></script>
 <script>
-/* ---------------- config ---------------- */
-const COINS = ["USDC","USDT","DAI","PYUSD","BTC","LN"];
-const COIN_LABEL = {LN:"Lightning"};
-const CATS = ["Coffee","Restaurant","Grocery","Electronics","Clothing","Hotel","Pharmacy","Services"];
+/* =============== config =============== */
+const COINS = ["BTC","LN","USDC","USDT","DAI","PYUSD"];
+const CATS  = ["Coffee","Restaurant","Bar","Grocery","Retail","Electronics","Hotel","Pharmacy","Services","Other"];
 const CITIES = {
   "Karachi":[24.8607,67.0011], "Lahore":[31.5204,74.3587], "Islamabad":[33.6844,73.0479],
-  "Dubai":[25.2048,55.2708], "Lisbon":[38.7223,-9.1393], "Buenos Aires":[-34.6037,-58.3816]
+  "Dubai":[25.2048,55.2708], "London":[51.5072,-0.1276], "Lisbon":[38.7223,-9.1393],
+  "Prague":[50.0755,14.4378], "Ljubljana":[46.0569,14.5058], "Buenos Aires":[-34.6037,-58.3816],
+  "San Salvador":[13.6929,-89.2182], "New York":[40.7128,-74.0060], "Bangkok":[13.7563,100.5018]
 };
+const ICON_CAT = {
+  local_cafe:"Coffee", cafe:"Coffee", restaurant:"Restaurant", fastfood:"Restaurant", local_bar:"Bar",
+  sports_bar:"Bar", hotel:"Hotel", local_atm:"Bitcoin ATM", atm:"Bitcoin ATM", store:"Retail",
+  shopping_cart:"Grocery", local_grocery_store:"Grocery", computer:"Electronics", devices:"Electronics",
+  local_pharmacy:"Pharmacy", medical_services:"Pharmacy", spa:"Wellness", fitness_center:"Wellness",
+  car_repair:"Services", build:"Services", group:"Services", checkroom:"Clothing", storefront:"Retail"
+};
+const pretty = s => (s||"other").replace(/_/g," ").replace(/\b\w/g,m=>m.toUpperCase());
 
-/* ---------------- seed data ---------------- */
-const SEED = [
-  {n:"Kaffee Beans",       c:"Coffee",      city:"Karachi", a:"Zamzama Blvd, DHA Phase 5",  d:"Specialty roastery and cafe. Independent since 2014.",        ll:[24.8145,67.0324], coins:["USDC","USDT"]},
-  {n:"Chai Wala Co.",      c:"Coffee",      city:"Karachi", a:"Boat Basin, Clifton",        d:"All-night chai counter. Settles over layer 2 rails.",          ll:[24.8215,67.0316], coins:["LN","BTC"]},
-  {n:"Espresso Lab",       c:"Coffee",      city:"Karachi", a:"Bukhari Commercial",         d:"Third-wave espresso bar. Card-free by choice.",                ll:[24.8085,67.0621], coins:["USDC"]},
-  {n:"Kolachi Grill",      c:"Restaurant",  city:"Karachi", a:"Do Darya, DHA Phase 8",      d:"Seafront grill house. Dollar-pegged settlement preferred.",    ll:[24.7815,67.0553], coins:["USDT","USDC","BTC"]},
-  {n:"Naya Mart",          c:"Grocery",     city:"Karachi", a:"Tariq Road",                 d:"Neighbourhood grocer. Daily settlement to treasury.",          ll:[24.8709,67.0630], coins:["USDT"]},
-  {n:"TechHub Karachi",    c:"Electronics", city:"Karachi", a:"Saddar Electronics Market",  d:"Components and repairs. Import invoices paid onchain.",        ll:[24.8607,67.0225], coins:["USDT","BTC","USDC"]},
-  {n:"Beach Luxury Hotel", c:"Hotel",       city:"Karachi", a:"M.T. Khan Road",             d:"Waterfront hotel. Deposits accepted in stablecoins.",          ll:[24.8452,67.0080], coins:["USDC","PYUSD"]},
+/* =============== curated stablecoin layer =============== */
+const STABLE = [
+  {n:"Kaffee Beans",      cat:"Coffee",     a:"Zamzama Blvd, DHA Phase 5, Karachi",  ll:[24.8145,67.0324], coins:["USDC","USDT"]},
+  {n:"Chai Wala Co.",     cat:"Coffee",     a:"Boat Basin, Clifton, Karachi",        ll:[24.8215,67.0316], coins:["LN","BTC"]},
+  {n:"Kolachi Grill",     cat:"Restaurant", a:"Do Darya, DHA Phase 8, Karachi",      ll:[24.7815,67.0553], coins:["USDT","USDC","BTC"]},
+  {n:"TechHub Karachi",   cat:"Electronics",a:"Saddar Electronics Market, Karachi",  ll:[24.8607,67.0225], coins:["USDT","BTC","USDC"]},
+  {n:"Cafe Aylanto",      cat:"Restaurant", a:"MM Alam Road, Gulberg, Lahore",       ll:[31.5145,74.3489], coins:["USDC","USDT"]},
+  {n:"Gloria Coffee",     cat:"Coffee",     a:"DHA Phase 4, Y Block, Lahore",        ll:[31.4732,74.4103], coins:["LN","USDC"]},
+  {n:"Burning Brownie",   cat:"Coffee",     a:"F-7 Markaz, Islamabad",               ll:[33.7180,73.0551], coins:["USDC","LN"]},
+  {n:"Crypto Cafe DIFC",  cat:"Coffee",     a:"Gate Avenue, DIFC, Dubai",            ll:[25.2110,55.2810], coins:["USDC","BTC","LN","DAI"]},
+  {n:"Arabica Roasters",  cat:"Coffee",     a:"JLT Cluster D, Dubai",                ll:[25.0693,55.1416], coins:["USDC","USDT","PYUSD"]},
+  {n:"Souk Electronics",  cat:"Electronics",a:"Al Fahidi St, Bur Dubai",             ll:[25.2632,55.2972], coins:["USDT","BTC"]},
+  {n:"Cafe Tortoni",      cat:"Coffee",     a:"Av. de Mayo 825, Buenos Aires",       ll:[-34.6086,-58.3777],coins:["USDT","USDC"]},
+  {n:"Recoleta Farmacia", cat:"Pharmacy",   a:"Av. Santa Fe 1800, Buenos Aires",     ll:[-34.5950,-58.3920],coins:["USDT"]}
+].map((p,i)=>Object.assign({id:"c"+i, src:"curated"}, p));
 
-  {n:"Cafe Aylanto",       c:"Restaurant",  city:"Lahore",  a:"MM Alam Road, Gulberg",      d:"Mediterranean kitchen. Verified merchant since 2023.",         ll:[31.5145,74.3489], coins:["USDC","USDT"]},
-  {n:"Anarkali Threads",   c:"Clothing",    city:"Lahore",  a:"Liberty Market",             d:"Textile atelier. Cross-border supply chain settlement.",       ll:[31.5109,74.3438], coins:["USDT"]},
-  {n:"Gloria Coffee",      c:"Coffee",      city:"Lahore",  a:"DHA Phase 4, Y Block",       d:"Roastery and bakery. Instant settlement at counter.",          ll:[31.4732,74.4103], coins:["LN","USDC"]},
-  {n:"Model Town Pharmacy",c:"Pharmacy",    city:"Lahore",  a:"Model Town Link Rd",         d:"24-hour dispensary. Wholesale paid in stablecoins.",           ll:[31.4805,74.3239], coins:["USDT","DAI"]},
-
-  {n:"Burning Brownie",    c:"Coffee",      city:"Islamabad",a:"F-7 Markaz",                d:"Dessert bar and coffee house. Lightning at the till.",         ll:[33.7180,73.0551], coins:["USDC","LN"]},
-  {n:"Monal Restaurant",   c:"Restaurant",  city:"Islamabad",a:"Pir Sohawa Road",           d:"Hilltop dining room. Hard money preferred.",                   ll:[33.7500,73.0800], coins:["BTC","USDT"]},
-  {n:"Blue Area Repairs",  c:"Services",    city:"Islamabad",a:"Jinnah Ave, Blue Area",     d:"Device repair workshop. Paid per job, settled same day.",      ll:[33.7106,73.0551], coins:["USDT"]},
-  {n:"Safa Gold Grocers",  c:"Grocery",     city:"Islamabad",a:"F-7 Jinnah Super",          d:"Import grocer. Supplier invoices settled onchain.",            ll:[33.7226,73.0505], coins:["USDC","DAI"]},
-
-  {n:"Arabica Roasters",   c:"Coffee",      city:"Dubai",   a:"JLT Cluster D",              d:"Regional roastery. Multi-currency stablecoin treasury.",       ll:[25.0693,55.1416], coins:["USDC","USDT","PYUSD"]},
-  {n:"Crypto Cafe DIFC",   c:"Coffee",      city:"Dubai",   a:"Gate Avenue, DIFC",          d:"Finance-district cafe. Every major network accepted.",         ll:[25.2110,55.2810], coins:["USDC","BTC","LN","DAI"]},
-  {n:"Souk Electronics",   c:"Electronics", city:"Dubai",   a:"Al Fahidi St, Bur Dubai",    d:"Wholesale electronics. Trade settled in USDT.",                ll:[25.2632,55.2972], coins:["USDT","BTC"]},
-  {n:"Marina Boutique",    c:"Clothing",    city:"Dubai",   a:"Dubai Marina Walk",          d:"Designer resale. Consignment paid in USDC.",                   ll:[25.0805,55.1403], coins:["USDC"]},
-
-  {n:"Copenhagen Coffee",  c:"Coffee",      city:"Lisbon",  a:"R. Nova da Piedade 10",      d:"Nordic bakery and cafe. Lightning-first counter.",             ll:[38.7118,-9.1470], coins:["LN","BTC","USDC"]},
-  {n:"Time Out Market",    c:"Restaurant",  city:"Lisbon",  a:"Av. 24 de Julho",            d:"Food hall. Several stalls settle onchain.",                    ll:[38.7071,-9.1459], coins:["BTC","USDT"]},
-  {n:"Bairro Grocer",      c:"Grocery",     city:"Lisbon",  a:"Bairro Alto",                d:"Corner store. Serving the local expat network.",               ll:[38.7139,-9.1459], coins:["USDC","DAI"]},
-
-  {n:"Cafe Tortoni",       c:"Coffee",      city:"Buenos Aires",a:"Av. de Mayo 825",        d:"Historic cafe. Dollar-pegged pricing since 2023.",             ll:[-34.6086,-58.3777],coins:["USDT","USDC"]},
-  {n:"Palermo Steakhouse", c:"Restaurant",  city:"Buenos Aires",a:"Palermo Soho",           d:"Parrilla. Inflation-proof menu pricing.",                      ll:[-34.5885,-58.4270],coins:["USDT","BTC"]},
-  {n:"Recoleta Farmacia",  c:"Pharmacy",    city:"Buenos Aires",a:"Av. Santa Fe 1800",      d:"Pharmacy chain. Stablecoin accepted at all tills.",            ll:[-34.5950,-58.3920],coins:["USDT"]}
-];
-
-/* ---------------- state ---------------- */
+/* =============== state =============== */
 let mem = [];
 const store = {
-  read(){ try{ return JSON.parse(localStorage.getItem("coinmap_user")||"[]"); }catch(e){ return mem; } },
-  write(v){ mem = v; try{ localStorage.setItem("coinmap_user", JSON.stringify(v)); }catch(e){} }
+  read(){ try{ return JSON.parse(localStorage.getItem("cm_user")||"[]"); }catch(e){ return mem; } },
+  write(v){ mem=v; try{ localStorage.setItem("cm_user", JSON.stringify(v)); }catch(e){} }
 };
-let places = [], activeCoins = new Set(), selected = null, pendingPin = null, markers = [];
+const cache = {
+  get(){ try{
+      const o = JSON.parse(localStorage.getItem("cm_btcmap")||"null");
+      if(o && Date.now()-o.t < 864e5) return o.d;
+    }catch(e){} return null; },
+  set(d){ try{ localStorage.setItem("cm_btcmap", JSON.stringify({t:Date.now(), d})); }catch(e){} }
+};
 
-function loadPlaces(){
-  const user = store.read().map(p => Object.assign({}, p, {pending:true}));
-  places = SEED.map((p,i)=>Object.assign({id:"s"+i}, p)).concat(user);
-}
+let ALL = [], activeCoins = new Set(), selected = null, pendingPin = null;
+let markers = [], mode = "globe", globe = null, lastRes = [];
+const LIST_CAP = 120, MAP_CAP = 500, GLOBE_CAP = 9000;
 
-/* ---------------- decorative spokes ---------------- */
-(function(){
-  const svg = document.getElementById("spokes");
-  let s = '<circle cx="50" cy="50" r="42" fill="none" stroke="#5c6f85" stroke-width=".18" opacity=".55"/>';
-  for(let i=0;i<24;i++){
-    const a = (i/24)*Math.PI*2, r = 42;
-    s += '<line x1="50" y1="50" x2="'+(50+Math.cos(a)*r).toFixed(2)+'" y2="'+(50+Math.sin(a)*r).toFixed(2)+
-         '" stroke="#5c6f85" stroke-width=".14" opacity=".5"/>';
-  }
-  svg.innerHTML = s;
-})();
-
-/* ---------------- map ---------------- */
+/* =============== leaflet map =============== */
 const map = L.map("map", {zoomControl:false, attributionControl:true}).setView(CITIES.Karachi, 12);
 L.control.zoom({position:"bottomright"}).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-  attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:19, subdomains:'abcd'
-}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  {attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:19, subdomains:'abcd'}).addTo(map);
 const layer = L.layerGroup().addTo(map);
 let pinMarker = null;
 
-const nodeIcon = L.divIcon({className:"", iconSize:[9,9], iconAnchor:[4.5,4.5], popupAnchor:[0,-7],
-  html:'<div class="node"></div>'});
-const nodeIconOn = L.divIcon({className:"", iconSize:[9,9], iconAnchor:[4.5,4.5], popupAnchor:[0,-7],
-  html:'<div class="node on"></div>'});
+const mkIcon = (on,stable)=>L.divIcon({className:"", iconSize:[9,9], iconAnchor:[4.5,4.5], popupAnchor:[0,-7],
+  html:'<div class="node'+(on?" on":"")+(stable?" stable":"")+'"></div>'});
 
 map.on("click", e => {
   if(!document.getElementById("ov").classList.contains("show")) return;
   pendingPin = [e.latlng.lat, e.latlng.lng];
   if(pinMarker) map.removeLayer(pinMarker);
-  pinMarker = L.marker(e.latlng, {icon:nodeIconOn}).addTo(map);
+  pinMarker = L.marker(e.latlng, {icon:mkIcon(true,true)}).addTo(map);
   document.getElementById("pinhint").innerHTML =
     "Pin set — <b>"+pendingPin[0].toFixed(4)+", "+pendingPin[1].toFixed(4)+"</b>. Click again to move it.";
 });
+map.on("moveend", () => { if(mode==="map") render(false); });
 
-/* ---------------- helpers ---------------- */
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const tagHtml = cs => cs.map(c=>'<span class="tag">'+c+'</span>').join('');
+/* =============== 3D globe =============== */
+function initGlobe(){
+  if(typeof Globe !== "function"){ setMode("map"); return; }
+  globe = Globe({rendererConfig:{antialias:true, alpha:false}})(document.getElementById("globe3d"))
+    .backgroundColor("#b3c4d8")
+    .showAtmosphere(true).atmosphereColor("#e3eaf3").atmosphereAltitude(.15)
+    .showGraticules(true)
+    .pointsMerge(true).pointAltitude(.012).pointRadius(.17)
+    .pointColor(d => d.stable ? "#123" : "#0a0a0a")
+    .pointLat("lat").pointLng("lng");
 
-function matches(p,q,city){
-  if(city && !p.city.toLowerCase().includes(city.toLowerCase())) return false;
+  try{ globe.globeMaterial().color.set("#eef2f7"); }catch(e){}
+  const c = globe.controls();
+  c.autoRotate = true; c.autoRotateSpeed = .35; c.enableDamping = true;
+  globe.pointOfView({lat:25, lng:55, altitude:2.3});
+
+  fetch("https://unpkg.com/world-atlas@2/countries-110m.json")
+    .then(r=>r.json())
+    .then(topo => {
+      const f = topojson.feature(topo, topo.objects.countries).features;
+      globe.polygonsData(f)
+        .polygonAltitude(.006)
+        .polygonCapColor(()=> "#a2b5cc")
+        .polygonSideColor(()=> "rgba(110,132,160,.3)")
+        .polygonStrokeColor(()=> "#6b7f96");
+    }).catch(()=>{});
+
+  const ro = () => { const el=document.getElementById("view");
+    globe.width(el.clientWidth).height(el.clientHeight); };
+  ro(); window.addEventListener("resize", ro);
+}
+
+function setMode(m){
+  mode = m;
+  document.getElementById("map").classList.toggle("on", m==="map");
+  document.getElementById("globe3d").classList.toggle("off", m!=="globe");
+  document.getElementById("tab-globe").classList.toggle("on", m==="globe");
+  document.getElementById("tab-map").classList.toggle("on", m==="map");
+  if(globe) globe.controls().autoRotate = (m==="globe");
+  if(m==="map") setTimeout(()=>map.invalidateSize(), 60);
+  render(false);
+}
+document.getElementById("tab-globe").onclick = ()=>setMode("globe");
+document.getElementById("tab-map").onclick  = ()=>setMode("map");
+
+/* =============== data =============== */
+function normalize(r){
+  return {
+    id:"b"+r.id, n:r.name || "Unnamed merchant", ll:[r.lat, r.lon],
+    a:r.address || "", cat: ICON_CAT[r.icon] || pretty(r.icon),
+    coins:["BTC"], v:r.verified_at || null, src:"btcmap"
+  };
+}
+function rebuild(remote){
+  const user = store.read().map(p=>Object.assign({}, p, {pending:true}));
+  ALL = STABLE.concat(user).concat(remote||[]);
+}
+
+async function loadRemote(){
+  const cached = cache.get();
+  if(cached){ rebuild(cached); render(true); pushGlobe(); }
+  try{
+    const url = "https://api.btcmap.org/v4/places?limit=60000&fields=id,lat,lon,name,address,icon,verified_at";
+    const r = await fetch(url);
+    if(!r.ok) throw new Error(r.status);
+    const raw = await r.json();
+    const rows = raw.filter(x=>x && typeof x.lat==="number" && typeof x.lon==="number" && x.name).map(normalize);
+    cache.set(raw.filter(x=>x&&x.lat&&x.lon&&x.name));
+    rebuild(rows);
+    document.getElementById("src").textContent = "Source: BTC Map · live";
+    render(!cached); pushGlobe();
+  }catch(e){
+    if(!cached){
+      rebuild([]);
+      document.getElementById("src").textContent = "Source: offline seed";
+      render(true); pushGlobe();
+    }
+  }
+}
+
+/* =============== filtering =============== */
+const staleYears = p => {
+  if(p.src!=="btcmap") return false;
+  if(!p.v) return true;
+  return (Date.now()-new Date(p.v).getTime()) > 3.15e10; /* > ~1 year */
+};
+function matches(p,q){
   if(q){
-    const s = (p.n+" "+p.c+" "+(p.a||"")+" "+(p.d||"")).toLowerCase();
-    if(!q.toLowerCase().split(/\s+/).every(t=>s.includes(t))) return false;
+    const s = (p.n+" "+p.cat+" "+p.a).toLowerCase();
+    if(!q.split(/\s+/).every(t=>s.includes(t))) return false;
   }
   if(activeCoins.size && !p.coins.some(c=>activeCoins.has(c))) return false;
   return true;
 }
 
-/* ---------------- render ---------------- */
 function render(fly){
-  const q = document.getElementById("q").value.trim();
-  const city = document.getElementById("city").value.trim();
-  const res = places.filter(p=>matches(p,q,city));
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  let res = ALL.filter(p=>matches(p,q));
+
+  if(mode==="map"){
+    const b = map.getBounds();
+    res = res.filter(p=>b.contains(p.ll));
+  }
+  lastRes = res;
 
   document.getElementById("count").textContent =
-    res.length + (res.length===1?" node":" nodes") + (city?" · "+city:"");
+    res.length.toLocaleString() + (res.length===1?" node":" nodes") + (mode==="map" ? " in view" : " worldwide");
   document.getElementById("nodecount").textContent =
-    String(res.length).padStart(4,"0") + " NODES";
+    String(Math.min(res.length,99999)).padStart(4,"0") + " NODES";
 
+  /* list */
   const box = document.getElementById("rows");
   box.innerHTML = "";
   if(!res.length){
-    box.innerHTML = '<div class="none">No nodes match this query.<br>Widen the search, or clear the network filters.<br><br>'+
-      'Know a merchant that accepts stablecoins? Use <b>Submit Business</b>.</div>';
+    box.innerHTML = '<div class="none">No nodes match this query.<br>'+
+      (mode==="map" ? "Zoom out, or switch to the globe for a worldwide view.<br><br>" : "Widen the search, or clear the network filters.<br><br>")+
+      'Accept crypto at your business? Use <b>Register your business</b>.</div>';
   }
-  res.forEach((p,i)=>{
+  const shown = res.slice(0, LIST_CAP);
+  const frag = document.createDocumentFragment();
+  shown.forEach((p,i)=>{
     const d = document.createElement("div");
-    d.className = "row" + (selected===p.id?" on":"");
+    d.className = "row" + (selected===p.id ? " on" : "");
+    const stale = staleYears(p);
     d.innerHTML =
       '<span class="n">'+(i+1)+'</span>'+
-      '<div><h3>'+esc(p.n)+'</h3><p>'+esc(p.d || (p.c+". "+(p.a||p.city)))+'</p></div>'+
-      '<div class="tags">'+ (p.pending?'<span class="tag pend">Pending</span>':'') + tagHtml(p.coins) +'</div>';
-    d.onclick = () => {
-      selected = p.id;
-      map.flyTo(p.ll, 16, {duration:.7});
-      render(false);
-      const m = markers.find(x=>x.id===p.id); if(m) m.marker.openPopup();
-    };
-    box.appendChild(d);
+      '<div><h3>'+esc(p.n)+'</h3><p>'+esc(p.cat + (p.a ? " · "+p.a : ""))+'</p></div>'+
+      '<div class="tags">'+
+        (p.pending ? '<span class="tag pend">Pending</span>' : '')+
+        (stale ? '<span class="tag stale">Unverified</span>' : '')+
+        p.coins.map(c=>'<span class="tag">'+c+'</span>').join('')+
+      '</div>';
+    d.onclick = ()=>focusPlace(p);
+    frag.appendChild(d);
   });
+  box.appendChild(frag);
+  if(res.length > LIST_CAP){
+    const n = document.createElement("div");
+    n.className = "note-row";
+    n.textContent = "Showing "+LIST_CAP+" of "+res.length.toLocaleString()+" — narrow the search or zoom in";
+    box.appendChild(n);
+  }
 
+  /* leaflet markers */
   layer.clearLayers(); markers = [];
-  res.forEach(p=>{
-    const m = L.marker(p.ll, {icon: selected===p.id?nodeIconOn:nodeIcon}).addTo(layer);
-    m.bindPopup('<div class="pop-t">'+esc(p.n)+'</div>'+
-      '<div class="pop-m">'+esc(p.c)+' &middot; '+esc(p.a||p.city)+'</div>'+
-      '<div class="tags">'+tagHtml(p.coins)+'</div>');
-    markers.push({id:p.id, marker:m});
-  });
+  if(mode==="map"){
+    res.slice(0, MAP_CAP).forEach(p=>{
+      const m = L.marker(p.ll, {icon: mkIcon(selected===p.id, p.src!=="btcmap")}).addTo(layer);
+      m.bindPopup('<div class="pop-t">'+esc(p.n)+'</div>'+
+        '<div class="pop-m">'+esc(p.cat)+(p.a?' &middot; '+esc(p.a):'')+'</div>'+
+        '<div class="tags">'+p.coins.map(c=>'<span class="tag">'+c+'</span>').join('')+'</div>');
+      markers.push({id:p.id, marker:m});
+    });
+  }
 
-  if(fly && res.length){
-    const key = Object.keys(CITIES).find(k=>city && k.toLowerCase().includes(city.toLowerCase()));
-    if(key) map.flyTo(CITIES[key], 12, {duration:.8});
-    else map.fitBounds(L.latLngBounds(res.map(p=>p.ll)).pad(.25), {maxZoom:14});
+  if(fly && mode==="map" && res.length){
+    map.fitBounds(L.latLngBounds(res.slice(0,MAP_CAP).map(p=>p.ll)).pad(.2), {maxZoom:14});
   }
 }
 
-/* ---------------- filters ---------------- */
+function pushGlobe(){
+  if(!globe) return;
+  const pts = ALL.slice(0, GLOBE_CAP).map(p=>({lat:p.ll[0], lng:p.ll[1], stable:p.src!=="btcmap"}));
+  globe.pointsData(pts);
+}
+
+function focusPlace(p){
+  selected = p.id;
+  if(mode!=="map") setMode("map");
+  map.setView(p.ll, 16, {animate:true});
+  setTimeout(()=>{
+    render(false);
+    const m = markers.find(x=>x.id===p.id); if(m) m.marker.openPopup();
+  }, 220);
+}
+
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* =============== chips =============== */
 const chipBox = document.getElementById("chips");
 COINS.forEach(c=>{
-  const b = document.createElement("button");
-  b.className="tag"; b.type="button"; b.textContent=c; b.title=COIN_LABEL[c]||c;
-  b.onclick = () => { activeCoins.has(c)?activeCoins.delete(c):activeCoins.add(c);
-    b.classList.toggle("on"); render(false); };
+  const b=document.createElement("button"); b.className="tag"; b.type="button"; b.textContent=c;
+  b.onclick=()=>{ activeCoins.has(c)?activeCoins.delete(c):activeCoins.add(c); b.classList.toggle("on"); render(false); };
   chipBox.appendChild(b);
 });
+const cityBox = document.getElementById("cities");
+Object.keys(CITIES).forEach(name=>{
+  const b=document.createElement("button"); b.className="tag"; b.type="button"; b.textContent=name;
+  b.onclick=()=>{ selected=null; setMode("map"); map.setView(CITIES[name], 12, {animate:true});
+    setTimeout(()=>render(false), 260); };
+  cityBox.appendChild(b);
+});
 
-/* ---------------- form ---------------- */
-const selCat = document.getElementById("f-cat");
-CATS.forEach(c=>selCat.add(new Option(c,c)));
-const selCity = document.getElementById("f-city");
-Object.keys(CITIES).forEach(c=>selCity.add(new Option(c,c)));
-
+/* =============== form =============== */
+const selCat = document.getElementById("f-cat"); CATS.forEach(c=>selCat.add(new Option(c,c)));
+const selCity = document.getElementById("f-city"); Object.keys(CITIES).forEach(c=>selCity.add(new Option(c,c)));
 const coinBox = document.getElementById("f-coins");
 let formCoins = new Set();
 COINS.forEach(c=>{
-  const b = document.createElement("button");
-  b.className="tag"; b.type="button"; b.textContent=c; b.title=COIN_LABEL[c]||c;
-  b.onclick = () => { formCoins.has(c)?formCoins.delete(c):formCoins.add(c); b.classList.toggle("on"); };
+  const b=document.createElement("button"); b.className="tag"; b.type="button"; b.textContent=c;
+  b.onclick=()=>{ formCoins.has(c)?formCoins.delete(c):formCoins.add(c); b.classList.toggle("on"); };
   coinBox.appendChild(b);
 });
 
+function openModal(){ document.getElementById("ov").classList.add("show"); }
 function closeModal(){
   document.getElementById("ov").classList.remove("show");
   if(pinMarker){ map.removeLayer(pinMarker); pinMarker=null; }
-  pendingPin = null;
-  document.getElementById("pinhint").textContent =
-    "Click anywhere on the map to drop an exact pin. Otherwise the city centre is used.";
-  document.getElementById("err").style.display = "none";
+  pendingPin=null;
+  document.getElementById("pinhint").innerHTML =
+    "Switch to <b>Street map</b> and click to drop an exact pin. Otherwise the city centre is used.";
+  document.getElementById("err").style.display="none";
 }
-document.getElementById("open").onclick = () => document.getElementById("ov").classList.add("show");
+document.getElementById("open-top").onclick = openModal;
+document.getElementById("open-foot").onclick = openModal;
 document.getElementById("cancel").onclick = closeModal;
 document.getElementById("ov").onclick = e => { if(e.target.id==="ov") closeModal(); };
 document.addEventListener("keydown", e => { if(e.key==="Escape") closeModal(); });
@@ -424,51 +544,43 @@ document.getElementById("submit").onclick = () => {
   const err = document.getElementById("err");
   if(!name){ err.textContent="Business name is required"; err.style.display="block"; return; }
   if(!formCoins.size){ err.textContent="Select at least one accepted network"; err.style.display="block"; return; }
-
   const city = selCity.value;
   const rec = {
-    id:"u"+Date.now(), n:name, c:selCat.value, city,
-    a:document.getElementById("f-addr").value.trim() || city,
-    d:document.getElementById("f-desc").value.trim() || (selCat.value+". Awaiting verification."),
-    ll: pendingPin || CITIES[city],
-    coins:[...formCoins],
-    contact:document.getElementById("f-contact").value.trim(),
-    submitted:new Date().toISOString()
+    id:"u"+Date.now(), n:name, cat:selCat.value, src:"user",
+    a:(document.getElementById("f-addr").value.trim()||"")+(document.getElementById("f-addr").value.trim()?", ":"")+city,
+    ll: pendingPin || CITIES[city], coins:[...formCoins],
+    contact:document.getElementById("f-contact").value.trim(), submitted:new Date().toISOString()
   };
   const arr = store.read(); arr.push(rec); store.write(arr);
 
-  ["f-name","f-addr","f-desc","f-contact"].forEach(id=>document.getElementById(id).value="");
+  ["f-name","f-addr","f-contact"].forEach(id=>document.getElementById(id).value="");
   formCoins.clear(); [...coinBox.children].forEach(b=>b.classList.remove("on"));
   closeModal();
 
-  loadPlaces();
-  document.getElementById("city").value = city;
-  document.getElementById("q").value = "";
+  rebuild(cache.get() ? cache.get().filter(x=>x&&x.lat&&x.lon&&x.name).map(normalize) : []);
+  pushGlobe();
+  document.getElementById("q").value="";
   activeCoins.clear(); [...chipBox.children].forEach(b=>b.classList.remove("on"));
   selected = rec.id;
-  render(true);
+  setMode("map"); map.setView(rec.ll, 15, {animate:true});
+  setTimeout(()=>render(false), 260);
   toast("Submitted — pending review");
 };
 
 function toast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 3200);
 }
 
-/* ---------------- events ---------------- */
-["q","city"].forEach(id=>{
-  const el = document.getElementById(id);
-  el.addEventListener("input", () => render(false));
-  el.addEventListener("keydown", e => { if(e.key==="Enter"){ selected=null; render(true); }});
-});
+/* =============== boot =============== */
+document.getElementById("q").addEventListener("input", ()=>render(false));
+document.getElementById("q").addEventListener("keydown", e=>{ if(e.key==="Enter"){ selected=null; render(true); }});
 
-/* ---------------- boot ---------------- */
-loadPlaces();
-document.getElementById("city").value = "Karachi";
-render(true);
-setTimeout(()=>map.invalidateSize(), 200);
-window.addEventListener("resize", () => map.invalidateSize());
+initGlobe();
+rebuild([]);
+render(false);
+pushGlobe();
+loadRemote();
 </script>
 </body>
 </html>
