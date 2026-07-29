@@ -30,8 +30,8 @@
   /* ---------- left: globe / map ---------- */
   #globe{position:relative;flex:1 1 58%;min-width:0;background:var(--blue);overflow:hidden}
   #map{position:absolute;inset:0;background:var(--blue)}
-  #map .leaflet-tile{filter:grayscale(1) brightness(1.3) contrast(.5)}
-  #tint{position:absolute;inset:0;background:var(--blue);mix-blend-mode:multiply;pointer-events:none;z-index:395}
+  #map .leaflet-tile{filter:grayscale(1) brightness(.92) contrast(.55) sepia(1) hue-rotate(178deg) saturate(2.6)}
+  #tint{position:absolute;inset:0;background:rgba(168,187,212,.5);pointer-events:none;z-index:395}
   #spokes{position:absolute;inset:0;pointer-events:none;z-index:400;opacity:.5}
   .stamp{position:absolute;z-index:500;pointer-events:none;font-family:var(--mono);
     font-size:10.5px;letter-spacing:.06em;color:#1c2733}
