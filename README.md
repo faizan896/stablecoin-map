@@ -8,14 +8,18 @@ A Google-Maps-style directory of businesses that accept stablecoins and Bitcoin.
 
 ## What it does
 
-- **Real map** — Leaflet + OpenStreetMap (dark tiles via CARTO). No Google Maps API key, no per-load cost.
-- **Search** — free-text (name / category / address) + city, with live filtering as you type.
-- **Coin filters** — USDC, USDT, DAI, PYUSD, BTC, Lightning. Multi-select.
-- **List ↔ map sync** — click a result to fly to its pin and open the popup.
-- **Self-submission** — businesses add themselves via a form, and can click the map to drop an exact pin.
-- **Moderation simulation** — new submissions show a `PENDING` badge until reviewed.
+- **Live data — ~29,000 real merchants.** Pulled from the [BTC Map](https://btcmap.org) public API on load and cached for 24h. Not sample data.
+- **3D world globe** — interactive, auto-rotating globe (globe.gl + Three.js) plotting every node worldwide.
+- **Street map view** — toggle to a 2D Leaflet map; the directory then lists whatever is in view.
+- **Search + network filters** — free text across name/category/address, plus BTC, LN, USDC, USDT, DAI, PYUSD.
+- **Freshness badges** — nodes not verified in over a year are flagged `UNVERIFIED`, so stale listings are visible rather than hidden.
+- **Register your business** — prominent form with category, networks, and click-to-drop pin.
 
-25 sample listings across Karachi, Lahore, Islamabad, Dubai, Lisbon, and Buenos Aires.
+Two data layers: real Bitcoin/Lightning merchants from BTC Map, plus a curated stablecoin layer (rendered as hollow markers) that the submission form feeds into.
+
+## Design
+
+Editorial / Swiss layout: pale steel-blue viewport, `#f7f7f5` paper directory panel, Helvetica uppercase headings, monospace micro-labels, outlined network tags, and a single serif accent on *Submit Business*.
 
 ## Run locally
 
@@ -59,7 +63,11 @@ See [`build-plan.md`](./build-plan.md) for the production architecture: Next.js 
 
 ## Tech
 
-Vanilla HTML/CSS/JS · [Leaflet 1.9](https://leafletjs.com) · OpenStreetMap + CARTO tiles
+Vanilla HTML/CSS/JS · [globe.gl](https://globe.gl) (Three.js) · [Leaflet 1.9](https://leafletjs.com) · OpenStreetMap + CARTO tiles · [BTC Map API](https://api.btcmap.org)
+
+## Data note
+
+BTC Map is OpenStreetMap-derived, so it covers **Bitcoin and Lightning** merchants. There is no equivalent open bulk source for USDC/USDT acceptance — that gap is the reason this project exists, and why stablecoin listings have to be community-submitted and verified.
 
 ## License
 
