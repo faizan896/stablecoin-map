@@ -63,7 +63,7 @@ See [`build-plan.md`](./build-plan.md) for the production architecture: Next.js 
 
 ## Tech
 
-Vanilla HTML/CSS/JS · [globe.gl](https://globe.gl) (Three.js) · [Leaflet 1.9](https://leafletjs.com) · OpenStreetMap + CARTO tiles · [BTC Map API](https://api.btcmap.org)
+Vanilla HTML/CSS/JS · [globe.gl](https://globe.gl) (Three.js) · [Leaflet 1.9](https://leafletjs.com) · OpenStreetMap tiles · [BTC Map API](https://api.btcmap.org)
 
 ## Data note
 
