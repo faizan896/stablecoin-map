@@ -108,9 +108,9 @@
   .serif:hover{border-bottom-color:var(--ink)}
 
   /* ================= modal ================= */
-  .ov{position:fixed;inset:0;background:rgba(28,39,51,.45);display:none;align-items:center;justify-content:center;z-index:9000;padding:22px}
+  .ov{position:fixed;inset:0;background:rgba(28,39,51,.45);display:none;align-items:center;justify-content:center;z-index:9000;padding:22px;pointer-events:none}
   .ov.show{display:flex}
-  .modal{background:var(--paper);border:1px solid var(--rule);width:100%;max-width:520px;max-height:88vh;overflow-y:auto}
+  .modal{pointer-events:auto;background:var(--paper);border:1px solid var(--rule);width:100%;max-width:520px;max-height:88vh;overflow-y:auto}
   .mh{padding:22px 28px 18px;border-bottom:1px solid var(--rule)}
   .mh h2{margin:9px 0 0;font-size:25px;font-weight:500;text-transform:uppercase;letter-spacing:-.012em;line-height:1.06}
   .mb{padding:20px 28px 24px}
@@ -323,13 +323,20 @@ map.on("moveend", () => { if(mode==="map") render(false); });
 /* =============== 3D globe =============== */
 function initGlobe(){
   if(typeof Globe !== "function"){ setMode("map"); return; }
-  globe = Globe({rendererConfig:{antialias:true, alpha:false}})(document.getElementById("globe3d"))
-    .backgroundColor("#b3c4d8")
-    .showAtmosphere(true).atmosphereColor("#e3eaf3").atmosphereAltitude(.15)
-    .showGraticules(true)
-    .pointsMerge(true).pointAltitude(.012).pointRadius(.17)
-    .pointColor(d => d.stable ? "#123" : "#0a0a0a")
-    .pointLat("lat").pointLng("lng");
+  /* no WebGL (old device, GPU blocked): fall back to the street map instead of dying */
+  try{
+    globe = Globe({rendererConfig:{antialias:true, alpha:false}})(document.getElementById("globe3d"))
+      .backgroundColor("#b3c4d8")
+      .showAtmosphere(true).atmosphereColor("#e3eaf3").atmosphereAltitude(.15)
+      .showGraticules(true)
+      .pointsMerge(true).pointAltitude(.012).pointRadius(.17)
+      .pointColor(d => d.stable ? "#123" : "#0a0a0a")
+      .pointLat("lat").pointLng("lng");
+  }catch(e){
+    globe = null;
+    document.getElementById("tab-globe").style.display = "none";
+    setMode("map"); return;
+  }
 
   try{ globe.globeMaterial().color.set("#eef2f7"); }catch(e){}
   const c = globe.controls();
@@ -380,7 +387,7 @@ function rebuild(remote){
 
 async function loadRemote(){
   const cached = cache.get();
-  if(cached){ rebuild(cached); render(true); pushGlobe(); }
+  if(cached){ rebuild(cached.map(normalize)); render(true); pushGlobe(); }
   try{
     const url = "https://api.btcmap.org/v4/places?limit=60000&fields=id,lat,lon,name,address,icon,verified_at";
     const r = await fetch(url);
@@ -420,6 +427,11 @@ function render(fly){
   let res = ALL.filter(p=>matches(p,q));
 
   if(mode==="map"){
+    /* a search or filter flies to every match, not only the ones already in view */
+    if(fly && res.length && (q || activeCoins.size)){
+      map.fitBounds(L.latLngBounds(res.slice(0,MAP_CAP).map(p=>p.ll)).pad(.2), {maxZoom:14, animate:false});
+      fly = false;
+    }
     const b = map.getBounds();
     res = res.filter(p=>b.contains(p.ll));
   }
@@ -536,7 +548,6 @@ function closeModal(){
 document.getElementById("open-top").onclick = openModal;
 document.getElementById("open-foot").onclick = openModal;
 document.getElementById("cancel").onclick = closeModal;
-document.getElementById("ov").onclick = e => { if(e.target.id==="ov") closeModal(); };
 document.addEventListener("keydown", e => { if(e.key==="Escape") closeModal(); });
 
 document.getElementById("submit").onclick = () => {
